@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="#f0f0f0"
+    android:paddingLeft="80dip"
+    android:paddingRight="8dip"
+    android:paddingBottom="10dip"
+    android:paddingTop="10dip">
+
+    <ImageView
+        android:id="@+id/me_head_image"
+        android:layout_width="40dip"
+        android:layout_height="40dip"
+        android:layout_alignParentRight="true"
+        android:layout_marginLeft="5dip"
+        android:background="@mipmap/head_image" />
+
+    <TextView
+        android:id="@+id/me_send_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@id/me_head_image"
+        android:layout_toLeftOf="@id/me_head_image"
+        android:background="@mipmap/me"
+        android:paddingTop="13dip"
+        android:paddingBottom="18dip"
+        android:text="会忽了gyughiulhlluihui过"
+        android:textColor="#000" />
+
+
+</RelativeLayout>

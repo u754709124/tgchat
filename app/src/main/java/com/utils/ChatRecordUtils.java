@@ -6,9 +6,12 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+import com.tgchat.ChatActivity;
 import com.tgchat.MainActivity;
 
 import java.util.ArrayList;
+
+import static com.tgchat.ChatActivity.chatMessageArrayList;
 
 public class ChatRecordUtils {
 
@@ -52,13 +55,7 @@ public class ChatRecordUtils {
     */
     public void setIsRemoved(String sendAccount, String revAccount){
         Long currentMillis = System.currentTimeMillis();
-//        ContentValues values = new ContentValues();
-//        values.put("isRead", true);
-//        values.put("isRemoved")
-        String sql = "update chatRecord  set IsRead=1, IsRemoved=1 where sendAccount="
-                + sendAccount + " AND revAccount=" + revAccount + " AND sendTime<="
-                + currentMillis + ";";
-        Log.e("test", sql);
+
         sqLiteDatabase.execSQL("update chatRecord  set IsRead=1, IsRemoved=1 where sendAccount="
                 + sendAccount + " AND revAccount=" + revAccount + " AND sendTime<="
                 + currentMillis + ";");
@@ -81,6 +78,9 @@ public class ChatRecordUtils {
                 String messageContent = cursor.getString(cursor.getColumnIndex("messageContent"));
                 Long sendTime = cursor.getLong(cursor.getColumnIndex("sendTime"));
                 Integer isRead = cursor.getInt(cursor.getColumnIndex("isRead"));
+
+                //将/a3/t4替换为@
+                messageContent = messageContent.replace("/a3/t4", "@");
 
                 int count;
 
@@ -109,37 +109,27 @@ public class ChatRecordUtils {
      *     和sendAccount=this.revAccount, revAccount=this.sendAccount的数据
      *     返回一个关于聊天记录的对象
      */
-    public ArrayList<String> queryAllChatRecord(String sendAccount, String revAccount){
+    public void queryAllChatRecord(String sendAccount, String revAccount) {
 
         String[] selectColumn = new String[]{"messageContent", "sendTime"};
         Cursor cursor = sqLiteDatabase.query("chatRecord", selectColumn, "sendAccount=? AND revAccount=?", new String[]{sendAccount, revAccount}, null, null, null);
         //判断是否存在IsRemoved=False项
-        if(cursor == null) return null;
+        if (cursor == null) return;
 
         if(cursor.moveToFirst()){
             do{
                 String messageContent = cursor.getString(cursor.getColumnIndex("messageContent"));
                 Long sendTime = cursor.getLong(cursor.getColumnIndex("sendTime"));
-                Integer isRead = cursor.getInt(cursor.getColumnIndex("isRead"));
-
-                int count;
-
-                if (isRead == 0) {
-                    count = 1;
-                } else {
-                    count = 0;
-                }
+                //将/a3/t4替换为@
+                messageContent = messageContent.replace("/a3/t4", "@");
                 //根据sendAccount查询用户nickname和headImageUrl
-                String nickname = "123";
                 String headImageUrl = "123.png";
-                MainActivity.Message message = new MainActivity.Message(sendAccount, nickname, headImageUrl, messageContent, sendTime);
-                message.setCount(count);
-                MainActivity.messageList.add(message);
+                chatMessageArrayList.add(new ChatActivity.ChatMessage(sendAccount, revAccount, messageContent, headImageUrl, sendTime));
+
 
             }while(cursor.moveToNext());
         }
         cursor.close();
-        return null;
     }
 
     /* 存入聊天记录

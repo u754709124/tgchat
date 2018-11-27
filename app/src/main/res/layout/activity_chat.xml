@@ -50,8 +50,10 @@
         android:layout_marginTop="0dp"
         android:layout_weight="10"
         android:background="#fff9f9fb"
+        android:stackFromBottom="true"
+        android:divider="@null"
         android:fastScrollEnabled="true"
-        android:transcriptMode="normal">
+        android:transcriptMode="alwaysScroll">
 
     </ListView>
 
