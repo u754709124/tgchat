@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#fff">
+
+        <ImageView
+            android:id="@+id/return_btn"
+            android:layout_width="52dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@mipmap/head_image" />
+
+        <TextView
+            android:id="@+id/send_nickname"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="8dp"
+            android:text="肖恩克的穿墙术"
+            android:textColor="#000"
+            android:textSize="18sp"
+            app:layout_constraintStart_toEndOf="@+id/return_btn"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/message_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:maxEms="@integer/mssage_content"
+            android:singleLine="true"
+            android:text="你好啊hahhahahah a哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈"
+            android:textColor="#838383"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/send_nickname" />
+
+        <TextView
+            android:id="@+id/send_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:text="00:00"
+            android:textColor="#999999"
+            app:layout_constraintBottom_toBottomOf="@+id/send_nickname"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/send_nickname" />
+
+        <TextView
+            android:id="@+id/message_count"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="@mipmap/red_dot"
+            android:gravity="center"
+            android:singleLine="true"
+            android:soundEffectsEnabled="false"
+            android:text="99"
+            android:textColor="#fff"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@+id/message_content"
+            app:layout_constraintEnd_toEndOf="@+id/send_time"
+            app:layout_constraintTop_toTopOf="@+id/message_content" />
+
+    </android.support.constraint.ConstraintLayout>
+</LinearLayout>
