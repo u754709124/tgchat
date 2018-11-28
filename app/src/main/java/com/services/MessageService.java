@@ -185,7 +185,10 @@ public class MessageService extends Service {
 
                                 //发送广播
                                 Intent mIntent = new Intent("com.services.receiveMessage");
-                                mIntent.putExtra("requestType", "requestUpdateUI");
+                                mIntent.putExtra("requestType", "receiveMessage");
+                                mIntent.putExtra("sendNickname", nickname);
+                                mIntent.putExtra("headImageUrl", headImageUrl);
+                                mIntent.putExtra("messageContent", messageContent);
                                 sendBroadcast(mIntent);
 
                                 Log.e(TAG, String.format("[%s]: \"%s\" 给你发送了一条消息: %s",

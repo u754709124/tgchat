@@ -7,30 +7,29 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AbsListView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-
 import com.adapter.ChatListAdapter;
-import com.adapter.MessageListAdapter;
 import com.services.MessageService;
 import com.utils.ChatRecordUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-
-import static com.tgchat.MainActivity.messageList;
 import static com.tgchat.MainActivity.userInfo;
 
 public class ChatActivity extends AppCompatActivity {
@@ -58,6 +57,8 @@ public class ChatActivity extends AppCompatActivity {
     //定义接收器
     BroadcastReceiver broadcastReceiver;
 
+    //定义ListView滚动监听器的计数器
+    int scrollCount = 0;
 
 
     @Override
@@ -103,10 +104,14 @@ public class ChatActivity extends AppCompatActivity {
         //设置发送按钮监听
         setSendBtnOnClickListen();
 
-        //注册监听广播
-        IntentFilter filter = new IntentFilter("com.services.receiveMessage");
-        broadcastReceiver = new MessageChangeReceiver();
-        registerReceiver(broadcastReceiver, filter);
+        //注册监听接收到消息的广播
+        registerBroadcastReceiver();
+
+        //监听ListView中消息条数，更改显示方式
+        setScrollListener();
+
+        //监听输入框是否有内容
+        setInputDataChangeLister();
 
     }
 
@@ -117,10 +122,79 @@ public class ChatActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
+    //监听ListView中消息条数，更改显示方式
+    public void setScrollListener() {
+        chatEachList.setOnScrollListener(new AbsListView.OnScrollListener() {
+
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+
+                //没有一次显示完
+                if (visibleItemCount < totalItemCount) {
+                    //滚动只需要执行一次
+                    if (scrollCount == 0) {
+                        chatEachList.setSelection(chatEachList.getCount() - 1);
+                        scrollCount++;
+                    }
+                }
+            }
+        });
+    }
+
+    //监听输入框是否有内容
+    private void setInputDataChangeLister() {
+        inputField.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String inputText = inputField.getText().toString().trim();
+
+                //输入框输入不为空格
+                if (!inputText.equals("")) {
+                    //设置发送按钮颜色和文字颜色
+                    sendBtn.setBackground(getDrawable(R.drawable.send_clickable_btn_shape));
+                    sendBtn.setTextColor(Color.rgb(255, 255, 255));
+                    //设置按钮可以点击
+                    sendBtn.setEnabled(true);
+                } else {
+                    //设置发送按钮颜色和文字颜色
+                    sendBtn.setBackground(getDrawable(R.drawable.send_unclickable_btn_shape));
+                    sendBtn.setTextColor(Color.rgb(241, 242, 244));
+                    //设置按钮不可以点击
+                    sendBtn.setEnabled(false);
+                }
+
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+    }
+
+    //注册监听接收到消息的广播
+    private void registerBroadcastReceiver() {
+        IntentFilter filter = new IntentFilter("com.services.receiveMessage");
+        broadcastReceiver = new MessageChangeReceiver();
+        registerReceiver(broadcastReceiver, filter);
+    }
+
     //设置ListView监听
     public void setListViewAdapter() {
         chatListAdapter = new ChatListAdapter();
         chatEachList.setAdapter(chatListAdapter);
+
     }
 
     //初始化聊天记录列表
@@ -266,7 +340,7 @@ public class ChatActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             //获取请求
             String requestType = intent.getStringExtra("requestType");
-            if (requestType.equals("requestUpdateUI")) {
+            if (requestType.equals("receiveMessage")) {
                 //清空列表
                 chatMessageArrayList.clear();
                 //初始化消息列表
