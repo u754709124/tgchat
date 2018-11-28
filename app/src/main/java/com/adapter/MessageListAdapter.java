@@ -49,7 +49,7 @@ public class MessageListAdapter extends BaseAdapter{
         //获取当前position的Message对象
         MainActivity.Message message = messageList.get(position);
         //设置发送人昵称
-        sendNickname.setText(message.getNickName());
+        sendNickname.setText(message.getSendAccount());
         //设置发送人头像, 关键词：drawable 网络头像
         //headImage.setImageDrawable();
         //设置发送的消息
@@ -57,7 +57,12 @@ public class MessageListAdapter extends BaseAdapter{
         //设置发送时间
         sendTime.setText(convertLongMillisToString(message.getSendTime()));
         //设置小红点显示消息数
-        messageCount.setText(String.valueOf(message.getCount()));
+        if (message.getCount() == 0) {
+            messageCount.setVisibility(View.GONE);
+        } else {
+            messageCount.setVisibility(View.VISIBLE);
+            messageCount.setText(String.valueOf(message.getCount()));
+        }
 
 
 
@@ -65,11 +70,11 @@ public class MessageListAdapter extends BaseAdapter{
     }
 
     private String convertLongMillisToString(Long oldTimeMills){
-        SimpleDateFormat totalDateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm", Locale.CHINA);
+        SimpleDateFormat totalDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.CHINA);
         SimpleDateFormat yearDateFormat = new SimpleDateFormat("yyyy", Locale.CHINA);
         SimpleDateFormat monthDateFormat = new SimpleDateFormat("MM", Locale.CHINA);
         SimpleDateFormat dayDateFormat = new SimpleDateFormat("dd", Locale.CHINA);
-        SimpleDateFormat timeDateFormat = new SimpleDateFormat("hh:mm", Locale.CHINA);
+        SimpleDateFormat timeDateFormat = new SimpleDateFormat("HH:mm", Locale.CHINA);
 
         Long nowTimeMills = System.currentTimeMillis();
 

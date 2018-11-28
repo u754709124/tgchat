@@ -25,6 +25,11 @@ import com.adapter.MessageListAdapter;
 import com.services.MessageService;
 import com.utils.ChatRecordUtils;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+
 import static com.tgchat.MainActivity.messageList;
 import static com.tgchat.MainActivity.userInfo;
 
@@ -32,6 +37,7 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
     protected Activity mActivity;
     public static MessageListAdapter messageListAdapter;
     private ChatRecordUtils chatRecordUtils;
+    private int resumeCount = 0;
 
     //创建消息处理Handler个更新UI
     @SuppressLint("HandlerLeak")
@@ -47,7 +53,7 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
             else if(msg.what == 1){
                 MainActivity.Message messageInfo = (MainActivity.Message)msg.obj;
                 messageList.add(messageInfo);
-                MainActivity.removeSimilarObject();
+                removeSimilarObject();
                 //通知adapter更新界面
                 messageListAdapter.notifyDataSetChanged();
 
@@ -64,7 +70,12 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
 
     @Override
     public void onResume() {
-        messageListAdapter.notifyDataSetChanged();
+        if (resumeCount != 0) {
+            messageList.clear();
+            initMessageList();
+            messageListAdapter.notifyDataSetChanged();
+        }
+        resumeCount++;
         super.onResume();
     }
 
@@ -75,9 +86,17 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
         View contentView = inflater.inflate(R.layout.fragment_message, container, false);
         //初始化ListView
         final ListView messageList = contentView.findViewById(R.id.message_list);
+
+        //实例化ChatRecordUtil对象
+        chatRecordUtils = new ChatRecordUtils(mActivity);
+
+        //初始化消息列表
+        initMessageList();
+
         //绑定adapter
         messageListAdapter = new MessageListAdapter();
         messageList.setAdapter(messageListAdapter);
+
         //为ListView绑定长按点击事件
         messageList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener(){
 
@@ -95,6 +114,11 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                 //获取点击消息对应的用户名
                 MainActivity.Message info = MainActivity.messageList.get(position);
                 String selectedAccount = info.getSendAccount();
+
+                //设置消息为已读
+                chatRecordUtils.setIsRead(selectedAccount, userInfo.get("userName"));
+                chatRecordUtils.setIsRead(userInfo.get("userName"), selectedAccount);
+
                 //创建一个新Intent启动聊天界面
                 Intent intent = new Intent();
                 intent.setClass(mActivity, ChatActivity.class);
@@ -105,9 +129,6 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
 
         //设置消息回调接口
         MessageService.setUpdateUI(this);
-
-        //实例化ChatRecordUtil对象
-        chatRecordUtils = new ChatRecordUtils(mActivity);
 
         return contentView;
     }
@@ -142,6 +163,7 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                         String revAccount = userInfo.get("userName");
                         //在数据库中将此条消息标注为IsRemoved
                         chatRecordUtils.setIsRemoved(sendAccount, revAccount);
+                        chatRecordUtils.setIsRemoved(revAccount, sendAccount);
                     }
 
                     messageList.remove(position);
@@ -155,5 +177,94 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
     @Override
     public void updateUI(Message message) {
         mUIHandler.sendMessage(message);
+    }
+
+    //初始化messageList
+    public void initMessageList() {
+        /*创建本地的数据库记录聊天记录,包括Message对象中的所有属性，
+        添加isRead字段(true, false):判断消息是否已读,默认为false;
+        添加isListVisible字段(true, false):判断是否被用户划出消息列表，默认为false；
+            ->根据时间对消息进行排序，发消息的人进行过滤，用户划出则对该人所有消息设置 已读 和 被划出;
+                ->即isRead设置为true， isListVisible设置为true;
+         */
+
+        if (!userInfo.isEmpty()) {
+            //读取数据库中的聊天记录
+            chatRecordUtils.queryUnRemovedData(userInfo.get("userName"), false);
+            chatRecordUtils.queryUnRemovedData(userInfo.get("userName"), true);
+
+            //判断消息列表长度是否为0
+            if (messageList.size() != 0) {
+                removeSimilarObject();
+            }
+        }
+    }
+
+    //列表去重
+    public void removeSimilarObject() {
+        //对列表进行升序排列
+        sortByDate(true);
+        //列表去重
+        int indexCount = 0;
+        HashMap<String, String> hashMap = new HashMap<>();
+        ArrayList<Integer> positionList = new ArrayList<>();
+        for (MainActivity.Message message : messageList) {
+            String sendAccount = message.getSendAccount();
+            String revAccount = message.getRevAccount();
+            //判断发送人是否为自己
+            if (sendAccount.equals(userInfo.get("userName"))) {
+                String temp = sendAccount;
+                sendAccount = revAccount;
+                revAccount = temp;
+            }
+
+            if (hashMap.get(sendAccount) != null) {
+                String mixArgs = hashMap.get(sendAccount);
+                Integer position = Integer.valueOf(mixArgs.split("@")[0]);
+                Integer sameCount = Integer.valueOf(mixArgs.split("@")[1]);
+                positionList.add(position);
+                hashMap.remove(sendAccount);
+                hashMap.put(sendAccount, "" + indexCount + "@" + (message.getCount() + sameCount));
+                message.setSendAccount(sendAccount);
+                message.setRevAccount(revAccount);
+                message.setCount(message.getCount() + sameCount);
+
+            } else {
+                hashMap.put(sendAccount, "" + indexCount + "@" + message.getCount());
+            }
+            indexCount++;
+        }
+
+        //对positionList进行排序
+        Collections.sort(positionList);
+        int elementRemoveCount = 0;
+        for (int position : positionList) {
+            messageList.remove(position - elementRemoveCount);
+            elementRemoveCount++;
+        }
+        //对列表进行降序排列
+        sortByDate(false);
+
+    }
+
+    //对数组进行升序或降序排列
+    public static void sortByDate(final boolean type) {
+        //type为true升序排列，否则为降序排列
+        Collections.sort(messageList, new Comparator<MainActivity.Message>() {
+            @Override
+            public int compare(MainActivity.Message o1, MainActivity.Message o2) {
+                Long time1 = o1.getSendTime();
+                Long time2 = o2.getSendTime();
+
+                if (time1.equals(time2)) return 0;
+
+                if (type) {
+                    return time1 > time2 ? 1 : -1;
+                } else {
+                    return time1 > time2 ? -1 : 1;
+                }
+            }
+        });
+
     }
 }

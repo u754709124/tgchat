@@ -1,8 +1,15 @@
 package com.tgchat;
 
+import android.annotation.SuppressLint;
+import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -47,6 +54,9 @@ public class ChatActivity extends AppCompatActivity {
 
     //定义聊天记录列表
     public static ArrayList<ChatMessage> chatMessageArrayList;
+
+    //定义接收器
+    BroadcastReceiver broadcastReceiver;
 
 
 
@@ -93,13 +103,18 @@ public class ChatActivity extends AppCompatActivity {
         //设置发送按钮监听
         setSendBtnOnClickListen();
 
+        //注册监听广播
+        IntentFilter filter = new IntentFilter("com.services.receiveMessage");
+        broadcastReceiver = new MessageChangeReceiver();
+        registerReceiver(broadcastReceiver, filter);
+
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-
-
+    protected void onDestroy() {
+        //解除注册监听广播
+        unregisterReceiver(broadcastReceiver);
+        super.onDestroy();
     }
 
     //设置ListView监听
@@ -176,6 +191,8 @@ public class ChatActivity extends AppCompatActivity {
 
                 //将发送的记录添加进数据库
                 chatRecordUtils.saveChatRecord(userInfo.get("userName"), hisAccount, sendContent, currentMillis);
+                //设置为已读
+                chatRecordUtils.setIsRead(userInfo.get("userName"), hisAccount);
 
                 //初始化聊天列表
                 chatMessageArrayList.clear();
@@ -242,4 +259,23 @@ public class ChatActivity extends AppCompatActivity {
                         | View.SYSTEM_UI_FLAG_IMMERSIVE);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
     }
+
+    //新建广播接收
+    public class MessageChangeReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //获取请求
+            String requestType = intent.getStringExtra("requestType");
+            if (requestType.equals("requestUpdateUI")) {
+                //清空列表
+                chatMessageArrayList.clear();
+                //初始化消息列表
+                initChatMessageArrayList();
+                //通知adapter
+                chatListAdapter.notifyDataSetChanged();
+
+            }
+        }
+    }
+
 }

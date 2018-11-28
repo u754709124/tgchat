@@ -2,11 +2,11 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="#f0f0f0"
+    android:background="#f1f2f7"
     android:paddingLeft="80dip"
+    android:paddingTop="10dip"
     android:paddingRight="8dip"
-    android:paddingBottom="10dip"
-    android:paddingTop="10dip">
+    android:paddingBottom="10dip">
 
     <ImageView
         android:id="@+id/me_head_image"
@@ -23,6 +23,7 @@
         android:layout_alignTop="@id/me_head_image"
         android:layout_toLeftOf="@id/me_head_image"
         android:background="@mipmap/me"
+        android:maxEms="20"
         android:paddingTop="13dip"
         android:paddingBottom="18dip"
         android:text="会忽了gyughiulhlluihui过"

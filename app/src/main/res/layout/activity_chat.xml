@@ -86,6 +86,8 @@
                 android:hint="Plesase input something..."
                 android:inputType="text"
                 android:isScrollContainer="false"
+                android:maxEms="20"
+                android:maxLength="160"
                 android:textAppearance="@style/TextAppearance.AppCompat"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/send_btn"

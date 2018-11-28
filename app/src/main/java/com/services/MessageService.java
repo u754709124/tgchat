@@ -21,6 +21,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Locale;
 
+import static com.tgchat.MainActivity.userInfo;
+
 
 public class MessageService extends Service {
 
@@ -172,7 +174,7 @@ public class MessageService extends Service {
 
                                     //新建MainActivity.Message对象
                                     MainActivity.Message info = new MainActivity.Message(
-                                            sendAccount, nickname, headImageUrl,
+                                            sendAccount, userInfo.get("userName"), nickname, headImageUrl,
                                             messageContent, sendTime);
                                     //回调到MainActivity通知更新UI
                                     Message msg1 = new Message();
@@ -180,6 +182,11 @@ public class MessageService extends Service {
                                     msg1.obj = info;
                                     messageUpdateUiInterface.updateUI(msg1);
                                 }
+
+                                //发送广播
+                                Intent mIntent = new Intent("com.services.receiveMessage");
+                                mIntent.putExtra("requestType", "requestUpdateUI");
+                                sendBroadcast(mIntent);
 
                                 Log.e(TAG, String.format("[%s]: \"%s\" 给你发送了一条消息: %s",
                                         sendTime, sendAccount, messageContent));

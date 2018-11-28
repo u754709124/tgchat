@@ -45,13 +45,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //顶部栏文字
     private TextView topTitle;
 
-    private ChatRecordUtils chatRecordUtils;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-        //创建CharRecordUtils实例
-        chatRecordUtils = new ChatRecordUtils(this);
 
         Intent loginIntent = getIntent();
         //判断Intent对象是否含有传入的参数
@@ -78,8 +74,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             serviceIntent.setClass(MainActivity.this, MessageService.class);
 
             startService(serviceIntent);
-            //初始化消息界面
-            initMessageList();
         }
 
         super.onCreate(savedInstanceState);
@@ -145,82 +139,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setSelectedStatus(0);
     }
 
-    //初始化messageList
-    public void initMessageList() {
-        /*创建本地的数据库记录聊天记录,包括Message对象中的所有属性，
-        添加isRead字段(true, false):判断消息是否已读,默认为false;
-        添加isListVisible字段(true, false):判断是否被用户划出消息列表，默认为false；
-            ->根据时间对消息进行排序，发消息的人进行过滤，用户划出则对该人所有消息设置 已读 和 被划出;
-                ->即isRead设置为true， isListVisible设置为true;
-         */
-
-        //读取数据库中的聊天记录
-        boolean status = chatRecordUtils.queryUnRemovedData(userInfo.get("userName"));
-        Log.d("test", "查询消息界面数据" + status);
-
-        //判断消息列表长度是否为0
-        if(messageList.size() != 0){
-            removeSimilarObject();
-        }
-
-    }
-
-    //列表去重
-    public static void removeSimilarObject() {
-        //对列表进行升序排列
-        sortByDate(true);
-        //列表去重
-        int indexCount = 0;
-        HashMap<String, String> hashMap = new HashMap<>();
-        ArrayList<Integer> positionList = new ArrayList<>();
-        for (Message message : messageList) {
-            String sendAccount = message.getSendAccount();
-            if (hashMap.get(sendAccount) != null) {
-                String mixArgs = hashMap.get(sendAccount);
-                Integer position = Integer.valueOf(mixArgs.split("@")[0]);
-                Integer sameCount = Integer.valueOf(mixArgs.split("@")[1]);
-                positionList.add(position);
-                hashMap.remove(sendAccount);
-                hashMap.put(sendAccount, "" + indexCount + "@" + (message.getCount()+sameCount));
-                message.setCount(message.getCount()+sameCount);
-
-            } else {
-                hashMap.put(sendAccount, "" + indexCount + "@" + message.getCount());
-            }
-            indexCount++;
-        }
-
-        int elementRemoveCount = 0;
-        for (int position : positionList) {
-            messageList.remove(position - elementRemoveCount);
-            elementRemoveCount++;
-        }
-        //对列表进行降序排列
-        sortByDate(true);
-
-    }
-
-    //对数组进行升序或降序排列
-    public static void sortByDate(final boolean type) {
-        //type为true升序排列，否则为降序排列
-        Collections.sort(messageList, new Comparator<Message>() {
-            @Override
-            public int compare(Message o1, Message o2) {
-                Long time1 = o1.getSendTime();
-                Long time2 = o2.getSendTime();
-
-                if(time1.equals(time2)) return 0;
-
-                if(type) {
-                    return time1>time2 ? 1:-1;
-                }
-                else{
-                    return time1>time2 ? -1:1;
-                }
-            }
-        });
-
-   }
 
     //底部栏按钮点击->设置选中状态
     public void setSelectedStatus(int index){
@@ -320,6 +238,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static class Message{
         //发送人账号
         private String sendAccount;
+        //接收人账号
+        private String revAccount;
         //发送人昵称
         private String nickName;
         //头像地址
@@ -331,8 +251,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //重复计数
         private Integer count;
 
-        public Message(String sendAccount, String nickName, String headImageUrl, String messageContent, Long sendTime){
+        public Message(String sendAccount, String revAccount, String nickName, String headImageUrl, String messageContent, Long sendTime) {
             this.sendAccount = sendAccount;
+            this.revAccount = revAccount;
             this.nickName = nickName;
             this.headImageUrl = headImageUrl;
             this.messageContent = messageContent;
@@ -374,6 +295,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         public void setCount(Integer count) {
             this.count = count;
+        }
+
+        public String getRevAccount() {
+            return revAccount;
+        }
+
+        public void setSendAccount(String sendAccount) {
+            this.sendAccount = sendAccount;
+        }
+
+        public void setRevAccount(String revAccount) {
+            this.revAccount = revAccount;
         }
     }
 

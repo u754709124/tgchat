@@ -12,6 +12,7 @@ import com.tgchat.MainActivity;
 import java.util.ArrayList;
 
 import static com.tgchat.ChatActivity.chatMessageArrayList;
+import static com.tgchat.MainActivity.userInfo;
 
 public class ChatRecordUtils {
 
@@ -59,18 +60,28 @@ public class ChatRecordUtils {
         sqLiteDatabase.execSQL("update chatRecord  set IsRead=1, IsRemoved=1 where sendAccount="
                 + sendAccount + " AND revAccount=" + revAccount + " AND sendTime<="
                 + currentMillis + ";");
+        sqLiteDatabase.execSQL("update chatRecord  set IsRead=1, IsRemoved=1 where sendAccount="
+                + revAccount + " AND revAccount=" + sendAccount + " AND sendTime<="
+                + currentMillis + ";");
 
     }
 
     /* 查询未被Removed数据
      *
      * 展示在消息页面的数据
+     * param:String revAccount->账号
+     * param:boolean reverse->true则查询发送人=账号的消息，false则查询接收人=账号的消息；
      */
-    public boolean queryUnRemovedData(String revAccount){
-        String[] selectColumn = new String[]{"sendAccount", "messageContent", "sendTime", "isRead"};
-        Cursor cursor = sqLiteDatabase.query("chatRecord", selectColumn, "isRemoved=0 AND revAccount=?", new String[]{revAccount}, null, null, null);
+    public void queryUnRemovedData(String Account, boolean reverse) {
+        Cursor cursor;
+        String[] selectColumn = new String[]{"sendAccount", "revAccount", "messageContent", "sendTime", "isRead"};
+        if (!reverse) {
+            cursor = sqLiteDatabase.query("chatRecord", selectColumn, "isRemoved=0 AND revAccount=?", new String[]{Account}, null, null, null);
+        } else {
+            cursor = sqLiteDatabase.query("chatRecord", selectColumn, "isRemoved=0 AND sendAccount=?", new String[]{Account}, null, null, null);
+        }
         //判断是否存在IsRemoved=False项
-        if(cursor == null) return false;
+        if (cursor == null) return;
 
         if(cursor.moveToFirst()){
             do{
@@ -78,6 +89,7 @@ public class ChatRecordUtils {
                 String messageContent = cursor.getString(cursor.getColumnIndex("messageContent"));
                 Long sendTime = cursor.getLong(cursor.getColumnIndex("sendTime"));
                 Integer isRead = cursor.getInt(cursor.getColumnIndex("isRead"));
+                String revAccount = cursor.getString(cursor.getColumnIndex("revAccount"));
 
                 //将/a3/t4替换为@
                 messageContent = messageContent.replace("/a3/t4", "@");
@@ -90,16 +102,15 @@ public class ChatRecordUtils {
                     count = 0;
                 }
                 //根据sendAccount查询用户nickname和headImageUrl
-                String nickname = "123";
+                String nickname = "默认昵称";
                 String headImageUrl = "123.png";
-                MainActivity.Message message = new MainActivity.Message(sendAccount, nickname, headImageUrl, messageContent, sendTime);
+                MainActivity.Message message = new MainActivity.Message(sendAccount, revAccount, nickname, headImageUrl, messageContent, sendTime);
                 message.setCount(count);
                 MainActivity.messageList.add(message);
 
             }while(cursor.moveToNext());
         }
         cursor.close();
-        return true;
     }
 
     /* 查询相互的聊天记录
