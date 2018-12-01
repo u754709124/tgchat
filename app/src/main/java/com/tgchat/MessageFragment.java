@@ -3,11 +3,12 @@ package com.tgchat;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
@@ -24,6 +25,8 @@ import android.widget.Toast;
 import com.adapter.MessageListAdapter;
 import com.services.MessageService;
 import com.utils.ChatRecordUtils;
+import com.utils.ImageUtils;
+import com.utils.NetRequestUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,42 +34,77 @@ import java.util.Comparator;
 import java.util.HashMap;
 
 import static com.tgchat.MainActivity.messageList;
-import static com.tgchat.MainActivity.userInfo;
+import static com.tgchat.WelcomeActivity.friendsInfo;
+import static com.tgchat.WelcomeActivity.userInfo;
 
 public class MessageFragment extends Fragment implements MessageService.MessageUpdateUiInterface {
     protected Activity mActivity;
-    public static MessageListAdapter messageListAdapter;
+    public MessageListAdapter messageListAdapter;
     private ChatRecordUtils chatRecordUtils;
     private int resumeCount = 0;
+    //声明内部定义的回调接口
+    CallBackListener callBackListener;
+    //引用一个广播接收器
+    BroadcastReceiver broadcastReceiver;
+    //引用一个ImageUtils的工具类
+    ImageUtils imageUtils;
+    //引用一个NetRequestUtils的工具类
+    NetRequestUtils netRequestUtils;
 
-    //创建消息处理Handler个更新UI
-    @SuppressLint("HandlerLeak")
-    private final Handler mUIHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            //输出提示消息
-            if(msg.what == 0){
-                String tips = (String)msg.obj;
-                Toast.makeText(mActivity.getApplicationContext(), tips, Toast.LENGTH_SHORT).show();
-            }
-            //输出MainActivity.Message
-            else if(msg.what == 1){
-                MainActivity.Message messageInfo = (MainActivity.Message)msg.obj;
-                messageList.add(messageInfo);
-                removeSimilarObject();
-                //通知adapter更新界面
-                messageListAdapter.notifyDataSetChanged();
+    ListView messageListView;
 
-                //设置震动提醒
-                Vibrator vibrator = (Vibrator)mActivity.getSystemService(Service.VIBRATOR_SERVICE);
-                long[] patter = {0, 230, 220, 70};
-                vibrator.vibrate(patter, -1);
-            }
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-            super.handleMessage(msg);
-        }
-    };
+        View contentView = inflater.inflate(R.layout.fragment_message, container, false);
+        //初始化ListView
+        messageListView = contentView.findViewById(R.id.message_list);
 
+        //注册广播接收器
+        registerQueryBroadcastReceiver();
+
+        //实例化ChatRecordUtils对象
+        chatRecordUtils = new ChatRecordUtils(mActivity);
+        //实例化ImageUtils对象
+        imageUtils = new ImageUtils(mActivity);
+        //实例化NetRequestUtils对象
+        netRequestUtils = new NetRequestUtils(mActivity);
+
+        //设置消息回调接口
+        MessageService.setUpdateUI(this);
+
+        //初始化消息列表
+        initMessageList();
+
+        //加载头像和昵称
+        initHeadImage();
+
+        //绑定adapter
+        messageListAdapter = new MessageListAdapter(mActivity);
+        messageListView.setAdapter(messageListAdapter);
+
+        //为ListView绑定长按点击事件
+        initLIstViewLongClickListener();
+
+        //点击消息跳转聊天页面
+        initListViewItemClickListener();
+
+        //通过getActivity()获取用于回调修改头像的接口
+        callBackListener = (CallBackListener) getActivity();
+
+
+        return contentView;
+    }
+
+    @Override
+    public void onDestroy() {
+        //关闭数据库连接
+        chatRecordUtils.sqLiteDatabase.close();
+        //取消注册广播监听
+        getActivity().unregisterReceiver(broadcastReceiver);
+        super.onDestroy();
+    }
 
     @Override
     public void onResume() {
@@ -79,26 +117,77 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
         super.onResume();
     }
 
-    @Nullable
+
+
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        this.mActivity = (Activity) context;
+    }
 
-        View contentView = inflater.inflate(R.layout.fragment_message, container, false);
-        //初始化ListView
-        final ListView messageList = contentView.findViewById(R.id.message_list);
+    @Override
+    public void updateUI(Message message) {
+        mUIHandler.sendMessage(message);
+    }
 
-        //实例化ChatRecordUtil对象
-        chatRecordUtils = new ChatRecordUtils(mActivity);
+    //创建消息处理Handler个更新UI
+    @SuppressLint("HandlerLeak")
+    private final Handler mUIHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            //输出提示消息
+            if (msg.what == 0) {
+                String tips = (String) msg.obj;
+                Toast.makeText(mActivity.getApplicationContext(), tips, Toast.LENGTH_SHORT).show();
+            }
+            //输出MainActivity.Message
+            else if (msg.what == 1) {
+                MainActivity.Message messageInfo = (MainActivity.Message) msg.obj;
+                messageList.add(messageInfo);
+                removeSimilarObject();
+                //获取该账户信息
+                netRequestUtils.requestUserInfo(messageInfo.getSendAccount());
+                //通知adapter更新界面
+                messageListAdapter.notifyDataSetChanged();
 
-        //初始化消息列表
-        initMessageList();
+                //设置震动提醒
+                Vibrator vibrator = (Vibrator) mActivity.getSystemService(Service.VIBRATOR_SERVICE);
+                long[] patter = {0, 230, 220, 70};
+                vibrator.vibrate(patter, -1);
+            }
+            //个人头像获取完毕
+            else if (msg.what == 2) {
+                String imagePath = mActivity.getFilesDir().getPath() + "/" + userInfo.get("imageUrl");
+                //回调到MainActivity
+                callBackListener.setImage(imagePath);
 
-        //绑定adapter
-        messageListAdapter = new MessageListAdapter();
-        messageList.setAdapter(messageListAdapter);
+            }
+            //好友信息加载完成
+            else if (msg.what == 3) {
+                for (MainActivity.Message message : messageList) {
+                    String userName = message.getSendAccount();
+                    HashMap<String, String> info = friendsInfo.get(userName);
+                    assert info != null;
+                    String headImageFileName = info.get("headImage");
+                    imageUtils.downloadImage(headImageFileName, mUIHandler, 4);
+                    //通知messageListAdapter数据改变
+                    messageListAdapter.notifyDataSetChanged();
+                }
+            }
+            //好友图片加载完成
+            else if (msg.what == 4) {
+                //通知messageListAdapter数据改变
+                messageListAdapter.notifyDataSetChanged();
+            }
 
-        //为ListView绑定长按点击事件
-        messageList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener(){
+
+            super.handleMessage(msg);
+        }
+    };
+
+    //ListView长按事件监听
+    private void initLIstViewLongClickListener() {
+        messageListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -107,13 +196,24 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                 return false;
             }
         });
-        //点击消息跳转聊天页面
-        messageList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+    }
+
+    //点击消息跳转聊天页面
+    private void initListViewItemClickListener() {
+        messageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 //获取点击消息对应的用户名
                 MainActivity.Message info = MainActivity.messageList.get(position);
                 String selectedAccount = info.getSendAccount();
+                String nickName;
+                if (friendsInfo.get(selectedAccount) != null) {
+                    HashMap<String, String> getInfo = friendsInfo.get(selectedAccount);
+                    assert getInfo != null;
+                    nickName = getInfo.get("nickName");
+                } else {
+                    nickName = "";
+                }
 
                 //设置消息为已读
                 chatRecordUtils.setIsRead(selectedAccount, userInfo.get("userName"));
@@ -123,20 +223,24 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                 Intent intent = new Intent();
                 intent.setClass(mActivity, ChatActivity.class);
                 intent.putExtra("selectedAccount", selectedAccount);
+                intent.putExtra("nickName", nickName);
                 startActivity(intent);
             }
         });
-
-        //设置消息回调接口
-        MessageService.setUpdateUI(this);
-
-        return contentView;
     }
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        this.mActivity = (Activity) context;
+    //初始化个人头像
+    public void initHeadImage() {
+        //下载个人头像
+        imageUtils.downloadImage(userInfo.get("imageUrl"), mUIHandler, 2);
+
+        //下载好友头像
+        //遍历messageList
+        for (MainActivity.Message message : messageList) {
+            String sendAccount = message.getSendAccount();
+            //根据账号在服务器查询该账号的 昵称 和 头像文件名
+            netRequestUtils.requestUserInfo(sendAccount);
+        }
     }
 
     //消息长按调出菜单
@@ -172,11 +276,6 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                 }
             }
         };
-    }
-
-    @Override
-    public void updateUI(Message message) {
-        mUIHandler.sendMessage(message);
     }
 
     //初始化messageList
@@ -267,4 +366,33 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
         });
 
     }
+
+    public interface CallBackListener {
+        void setImage(String path);
+    }
+
+    //注册广播接收器
+    private void registerQueryBroadcastReceiver() {
+        IntentFilter intentFilter = new IntentFilter("com.services.Query");
+        broadcastReceiver = new QueryUserInfoBroadcastReceiver();
+        mActivity.registerReceiver(broadcastReceiver, intentFilter);
+    }
+
+
+    //新建一个广播接收器
+    private class QueryUserInfoBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String status = intent.getStringExtra("Query");
+            if (status.equals("success")) {
+                Message message = new Message();
+                message.what = 3;
+                mUIHandler.sendMessage(message);
+            } else {
+                Log.e("test", "MessageFragment 查询用户信息失败!");
+            }
+        }
+    }
+
 }

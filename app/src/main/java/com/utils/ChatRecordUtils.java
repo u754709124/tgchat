@@ -12,13 +12,13 @@ import com.tgchat.MainActivity;
 import java.util.ArrayList;
 
 import static com.tgchat.ChatActivity.chatMessageArrayList;
-import static com.tgchat.MainActivity.userInfo;
+import static com.tgchat.WelcomeActivity.userInfo;
 
 public class ChatRecordUtils {
 
     private Context context;
 
-    SQLiteDatabase sqLiteDatabase;
+    public SQLiteDatabase sqLiteDatabase;
 
     public ChatRecordUtils(Context context){
         this.context = context;
@@ -102,8 +102,8 @@ public class ChatRecordUtils {
                     count = 0;
                 }
                 //根据sendAccount查询用户nickname和headImageUrl
-                String nickname = "默认昵称";
-                String headImageUrl = "123.png";
+                String nickname = "";//默认为空
+                String headImageUrl = "";//默认为空
                 MainActivity.Message message = new MainActivity.Message(sendAccount, revAccount, nickname, headImageUrl, messageContent, sendTime);
                 message.setCount(count);
                 MainActivity.messageList.add(message);

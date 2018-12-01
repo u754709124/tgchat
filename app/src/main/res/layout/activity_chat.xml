@@ -16,7 +16,7 @@
         android:background="@mipmap/top_bar">
 
         <ImageView
-            android:id="@+id/return_btn"
+            android:id="@+id/chat_head_image"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginStart="15dp"
@@ -36,10 +36,10 @@
             android:text="对方昵称"
             android:textColor="#fff"
             android:textSize="20sp"
-            app:layout_constraintBottom_toBottomOf="@+id/return_btn"
+            app:layout_constraintBottom_toBottomOf="@+id/chat_head_image"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/return_btn" />
+            app:layout_constraintTop_toTopOf="@+id/chat_head_image" />
     </android.support.constraint.ConstraintLayout>
 
 

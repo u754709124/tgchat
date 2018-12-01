@@ -9,7 +9,7 @@
     android:paddingRight="80dip"
     android:paddingBottom="10dip">
 
-    <ImageView
+    <com.utils.RoundImageView
         android:id="@+id/his_head_image"
         android:layout_width="40dip"
         android:layout_height="40dip"

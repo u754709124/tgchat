@@ -1,16 +1,10 @@
 package com.tgchat;
 
-import android.annotation.SuppressLint;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
-import android.os.Handler;
-import android.os.Message;
-import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -30,7 +24,9 @@ import com.utils.ChatRecordUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import static com.tgchat.MainActivity.userInfo;
+
+import static com.tgchat.MainActivity.messageList;
+import static com.tgchat.WelcomeActivity.userInfo;
 
 public class ChatActivity extends AppCompatActivity {
     //定义控件
@@ -75,8 +71,18 @@ public class ChatActivity extends AppCompatActivity {
         //获取Intent传入参数
         Intent intent = getIntent();
         String selectedAccount = intent.getStringExtra("selectedAccount");
+        String nickName = intent.getStringExtra("nickName");
+
         hisAccount = selectedAccount;
-        nickNameText.setText(selectedAccount);
+        //页面titile显示的文字
+        String displayTitle;
+
+        if (nickName.equals("")) {
+            displayTitle = hisAccount;
+        } else {
+            displayTitle = nickName;
+        }
+        nickNameText.setText(displayTitle);
 
         //返回按钮点击事件
         returnToList.setOnClickListener(new View.OnClickListener() {
@@ -120,6 +126,8 @@ public class ChatActivity extends AppCompatActivity {
         //解除注册监听广播
         unregisterReceiver(broadcastReceiver);
         super.onDestroy();
+        //关闭数据库连接
+        chatRecordUtils.sqLiteDatabase.close();
     }
 
     //监听ListView中消息条数，更改显示方式
@@ -183,16 +191,9 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
-    //注册监听接收到消息的广播
-    private void registerBroadcastReceiver() {
-        IntentFilter filter = new IntentFilter("com.services.receiveMessage");
-        broadcastReceiver = new MessageChangeReceiver();
-        registerReceiver(broadcastReceiver, filter);
-    }
-
     //设置ListView监听
     public void setListViewAdapter() {
-        chatListAdapter = new ChatListAdapter();
+        chatListAdapter = new ChatListAdapter(this);
         chatEachList.setAdapter(chatListAdapter);
 
     }
@@ -226,7 +227,7 @@ public class ChatActivity extends AppCompatActivity {
     private void initView() {
         nickNameText = findViewById(R.id.nickname_text);
         sendBtn = findViewById(R.id.send_btn);
-        returnToList = findViewById(R.id.return_btn);
+        returnToList = findViewById(R.id.chat_head_image);
         inputField = findViewById(R.id.input_field);
         topBar = findViewById(R.id.top_bar);
         inputBar = findViewById(R.id.input_bar);
@@ -264,9 +265,9 @@ public class ChatActivity extends AppCompatActivity {
                 Long currentMillis = System.currentTimeMillis();
 
                 //将发送的记录添加进数据库
-                chatRecordUtils.saveChatRecord(userInfo.get("userName"), hisAccount, sendContent, currentMillis);
+                chatRecordUtils.saveChatRecord(WelcomeActivity.userInfo.get("userName"), hisAccount, sendContent, currentMillis);
                 //设置为已读
-                chatRecordUtils.setIsRead(userInfo.get("userName"), hisAccount);
+                chatRecordUtils.setIsRead(WelcomeActivity.userInfo.get("userName"), hisAccount);
 
                 //初始化聊天列表
                 chatMessageArrayList.clear();
@@ -332,6 +333,13 @@ public class ChatActivity extends AppCompatActivity {
 
                         | View.SYSTEM_UI_FLAG_IMMERSIVE);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
+    }
+
+    //注册监听接收到消息的广播
+    private void registerBroadcastReceiver() {
+        IntentFilter filter = new IntentFilter("com.services.receiveMessage");
+        broadcastReceiver = new MessageChangeReceiver();
+        registerReceiver(broadcastReceiver, filter);
     }
 
     //新建广播接收

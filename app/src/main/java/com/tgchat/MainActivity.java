@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.app.FragmentTransaction;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,15 +16,17 @@ import android.widget.Toast;
 
 import com.services.MessageService;
 import com.utils.ChatRecordUtils;
+import com.utils.RoundImageView;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
-    //创建一个用户信息
-    public static HashMap<String, String> userInfo = new HashMap<>();
+import static com.tgchat.WelcomeActivity.userInfo;
+
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, MessageFragment.CallBackListener {
     //创建一个消息列表
     public static ArrayList<Message> messageList = new ArrayList<>();
 
@@ -48,33 +51,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //提示欢迎词
+        Toast.makeText(this, userInfo.get("nickName") + "，欢迎回来！", Toast.LENGTH_SHORT).show();
 
-        Intent loginIntent = getIntent();
-        //判断Intent对象是否含有传入的参数
-        if (loginIntent.hasExtra("userInfo")) {
-            @SuppressWarnings("unchecked")
-            //获取传入的用户信息
-                    HashMap<String, String> info = (HashMap<String, String>) loginIntent.getSerializableExtra("userInfo");
-            userInfo = info;
-            String msg = "账号为：" + userInfo.get("userName") + "，昵称为：" + userInfo.get("nickName");
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-        }
+        //创建后台消息服务
+        String username = userInfo.get("userName");
+        Intent serviceIntent = new Intent();
+        serviceIntent.putExtra("requestType", "requestLogin");
+        serviceIntent.putExtra("requestContent", username);
 
-        //判断userInfo是否为空，空则返回登录界面
-        if (userInfo.isEmpty()) {
-            jumpToLogin();
-        }
-        else{
-            //创建后台消息服务
-            String username = userInfo.get("userName");
-            Intent serviceIntent = new Intent();
-            serviceIntent.putExtra("requestType", "requestLogin");
-            serviceIntent.putExtra("requestContent", username);
+        serviceIntent.setClass(MainActivity.this, MessageService.class);
 
-            serviceIntent.setClass(MainActivity.this, MessageService.class);
+        startService(serviceIntent);
 
-            startService(serviceIntent);
-        }
 
         super.onCreate(savedInstanceState);
         Log.e("test", "MainActivity创建！");
@@ -208,15 +197,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         transaction.commit();
     }
 
-    //跳转到Login界面
-    public void jumpToLogin(){
-        Intent intent = new Intent();
-        //跳转时销毁本页面
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK|Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.setClass(MainActivity.this ,LoginActivity.class);
-        startActivity(intent);
-    }
-
     //全屏界面
     public void hideNavigationBar(){
         View decorView = getWindow().getDecorView();
@@ -232,6 +212,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                         | View.SYSTEM_UI_FLAG_IMMERSIVE);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
+    }
+
+    @Override
+    public void setImage(String path) {
+        RoundImageView chatHeadImage = findViewById(R.id.chat_head_image);
+        chatHeadImage.setImageURI((Uri.fromFile(new File(path))));
     }
 
     //消息对象
@@ -307,6 +293,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         public void setRevAccount(String revAccount) {
             this.revAccount = revAccount;
+        }
+
+        public void setNickName(String nickName) {
+            this.nickName = nickName;
+        }
+
+        public void setHeadImageUrl(String headImageUrl) {
+            this.headImageUrl = headImageUrl;
         }
     }
 

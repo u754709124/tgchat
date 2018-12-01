@@ -10,9 +10,9 @@
         android:layout_height="wrap_content"
         android:background="#fff">
 
-        <ImageView
-            android:id="@+id/return_btn"
-            android:layout_width="52dp"
+        <com.utils.RoundImageView
+            android:id="@+id/chat_head_image"
+            android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_marginStart="15dp"
             android:layout_marginTop="8dp"
@@ -31,7 +31,7 @@
             android:text="肖恩克的穿墙术"
             android:textColor="#000"
             android:textSize="18sp"
-            app:layout_constraintStart_toEndOf="@+id/return_btn"
+            app:layout_constraintStart_toEndOf="@+id/chat_head_image"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView

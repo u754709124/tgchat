@@ -1,5 +1,7 @@
 package com.adapter;
 
+import android.app.Activity;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,12 +11,22 @@ import android.widget.TextView;
 
 import com.tgchat.MainActivity;
 import com.tgchat.R;
+import com.tgchat.WelcomeActivity;
+import com.utils.ImageUtils;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 
 public class MessageListAdapter extends BaseAdapter{
+
+    private Activity mActivity;
+
+    public MessageListAdapter(Activity activity) {
+        this.mActivity = activity;
+    }
     //获取消息列表
     private ArrayList<MainActivity.Message> messageList = MainActivity.messageList;
 
@@ -44,14 +56,31 @@ public class MessageListAdapter extends BaseAdapter{
         TextView messageContent = convertView.findViewById(R.id.message_content);
         TextView sendTime = convertView.findViewById(R.id.send_time);
         TextView messageCount = convertView.findViewById(R.id.message_count);
-        ImageView headImage = convertView.findViewById(R.id.return_btn);
+        ImageView headImage = convertView.findViewById(R.id.chat_head_image);
 
         //获取当前position的Message对象
         MainActivity.Message message = messageList.get(position);
-        //设置发送人昵称
-        sendNickname.setText(message.getSendAccount());
-        //设置发送人头像, 关键词：drawable 网络头像
-        //headImage.setImageDrawable();
+
+
+        //如果能在好友信息的字典找到该账号
+        if (WelcomeActivity.friendsInfo.get(message.getSendAccount()) != null) {
+            HashMap<String, String> info = WelcomeActivity.friendsInfo.get(message.getSendAccount());
+            assert info != null;
+            String headImageFileName = info.get("headImage");
+            String nickName = info.get("nickName");
+
+            //如果图片存在, 则设置图片
+            if (ImageUtils.fileIsExists(mActivity, headImageFileName)) {
+                String ImagePath = mActivity.getFilesDir().getAbsolutePath() + "/" + headImageFileName;
+                headImage.setImageURI(Uri.fromFile(new File(ImagePath)));
+            }
+
+            //设置好友昵称
+            sendNickname.setText(nickName);
+        } else {
+            sendNickname.setText(message.getSendAccount());
+        }
+
         //设置发送的消息
         messageContent.setText(message.getMessageContent());
         //设置发送时间
