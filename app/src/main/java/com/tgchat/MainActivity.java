@@ -73,6 +73,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //初始化界面
         initViews();
+
+        //初始化监听添加好友按钮监听
+        initAddOnClickListener();
     }
 
     //activity销毁
@@ -302,6 +305,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void setHeadImageUrl(String headImageUrl) {
             this.headImageUrl = headImageUrl;
         }
+    }
+
+    //监听添加好友按钮点击事件
+    private void initAddOnClickListener() {
+        ImageView addFriendsBtn = findViewById(R.id.add_friends);
+        addFriendsBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent addIntent = new Intent(MainActivity.this, AddActivity.class);
+                startActivity(addIntent);
+            }
+        });
     }
 
 }

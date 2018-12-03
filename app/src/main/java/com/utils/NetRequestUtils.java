@@ -2,13 +2,16 @@ package com.utils;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.qiniu.android.http.ResponseInfo;
 import com.qiniu.android.storage.UpCompletionHandler;
 import com.qiniu.android.storage.UpProgressHandler;
 import com.qiniu.android.storage.UploadManager;
 import com.qiniu.android.storage.UploadOptions;
+import com.tgchat.AddActivity;
 import com.tgchat.MainActivity;
 import com.tgchat.WelcomeActivity;
 
@@ -18,7 +21,10 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import okhttp3.Call;
 import okhttp3.FormBody;
@@ -27,6 +33,8 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+import static com.tgchat.AddActivity.userQueryInfoList;
+import static com.tgchat.FriendsFragment.friendsAccountList;
 import static com.tgchat.MainActivity.messageList;
 import static com.tgchat.WelcomeActivity.userInfo;
 
@@ -318,8 +326,9 @@ public class NetRequestUtils {
      * 请求获取其他用户信息*
      *
      * @param username 需要查询的用户名
+     * @param type 查询类型  1->查询好友, 2->查询添加好友
      */
-    public void requestUserInfo(final String username) {
+    public void requestUserInfo(final String username, final int type) {
 
         new Thread(new Runnable() {
             @Override
@@ -353,11 +362,16 @@ public class NetRequestUtils {
                             JSONObject jsonMsgObject = jsonObjectTemp.getJSONObject("msg");
                             String nickname = unicodeToString((String) jsonMsgObject.get("nickname"));
                             String headImageFileName = (String) jsonMsgObject.get("head_image");
-                            //改变Message对象中的 nickname 和 headImageUrl
-                            HashMap<String, String> friendsInfo = new HashMap<>();
-                            friendsInfo.put("nickName", nickname);
-                            friendsInfo.put("headImage", headImageFileName);
-                            WelcomeActivity.friendsInfo.put(username, friendsInfo);
+                            if (type == 1) {
+                                HashMap<String, String> friendsInfo = new HashMap<>();
+                                friendsInfo.put("nickName", nickname);
+                                friendsInfo.put("headImage", headImageFileName);
+                                WelcomeActivity.friendsInfo.put(username, friendsInfo);
+                            } else {
+                                AddActivity.UserQueryInfo userQueryInfo =
+                                        new AddActivity.UserQueryInfo(username, nickname, headImageFileName);
+                                userQueryInfoList.add(userQueryInfo);
+                            }
 
                         } else {
                             flag = "failed";
@@ -366,6 +380,7 @@ public class NetRequestUtils {
                         //发送广播
                         Intent mIntent = new Intent("com.services.Query");
                         mIntent.putExtra("Query", flag);
+                        mIntent.putExtra("Type", String.valueOf(type));
                         mIntent.putExtra("errorMsg", errorMsg);
                         context.sendBroadcast(mIntent);
 
@@ -386,6 +401,137 @@ public class NetRequestUtils {
             }
         }).start();
     }
+
+    /**
+     * 请求添加好友
+     *
+     * @param myAccount  自己的账号
+     * @param hisAccount 需要添加的人的账号
+     */
+    public void addFriends(final String myAccount, final String hisAccount) {
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String url = serverAddress + "/friends/?kind=1&my_account="
+                        + myAccount + "&his_account=" + hisAccount;
+
+                OkHttpClient okHttpClient = new OkHttpClient();
+
+                Request request = new Request.Builder()
+                        .url(url)
+                        .build();
+
+                Call call = okHttpClient.newCall(request);
+                try {
+                    Response response = call.execute();
+                    //解析返回的json数据
+                    String Temp = response.body().string();
+                    JSONObject jsonObjectTemp = null;
+
+                    jsonObjectTemp = new JSONObject(Temp);
+
+                    //取得返回的状态
+                    try {
+                        String status = (String) jsonObjectTemp.get("status");
+                        String errorMsg = (String) jsonObjectTemp.get("msg");
+                        if (status.equals("success")) {
+                            Looper.prepare();
+                            Toast.makeText(context, "添加成功啦！", Toast.LENGTH_SHORT).show();
+                            Looper.loop();
+                        } else {
+                            Looper.prepare();
+                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show();
+                            Looper.loop();
+                        }
+
+                    } catch (JSONException e) {
+                        Log.e("test", "Exception occured at Line 52<NetRequestUt" +
+                                "ils>" + "\n" + Log.getStackTraceString(e));
+                    }
+
+
+                } catch (IOException e) {
+                    Log.e("test", "Exception occured at Line 49<NetRequestUtils>"
+                            + "\n" + Log.getStackTraceString(e));
+                } catch (JSONException e) {
+                    Log.e("test", "Exception occured at Line 52<NetRequestUtils>"
+                            + "\n" + Log.getStackTraceString(e));
+                }
+
+            }
+        }).start();
+    }
+
+    /**
+     * 请求查询好友列表*
+     *
+     * @param myAccount 自己的用户名
+     */
+    public void queryFriends(final String myAccount) {
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String url = serverAddress + "/friends/?kind=2&my_account=" + myAccount;
+
+                OkHttpClient okHttpClient = new OkHttpClient();
+
+                Request request = new Request.Builder()
+                        .url(url)
+                        .build();
+
+                Call call = okHttpClient.newCall(request);
+                try {
+                    Response response = call.execute();
+                    //解析返回的json数据
+                    String Temp = response.body().string();
+                    JSONObject jsonObjectTemp = null;
+
+                    jsonObjectTemp = new JSONObject(Temp);
+
+                    //取得返回的状态
+                    try {
+                        String status = (String) jsonObjectTemp.get("status");
+                        String flag;
+                        String errorMsg;
+                        if (status.equals("success")) {
+                            flag = "success";
+                            errorMsg = "";
+                            //解析数据
+                            JSONArray jsonArray = jsonObjectTemp.getJSONArray("msg");
+                            for (int i = 0; i < jsonArray.length(); i++) {
+                                friendsAccountList.add(jsonArray.getString(i));
+                            }
+                        } else {
+                            flag = "failed";
+                            errorMsg = "Can not find the User!";
+                        }
+                        //发送广播
+                        Intent mIntent = new Intent("com.services.Query");
+                        mIntent.putExtra("Query", flag);
+                        mIntent.putExtra("Type", "3");
+                        mIntent.putExtra("errorMsg", errorMsg);
+                        context.sendBroadcast(mIntent);
+
+                    } catch (JSONException e) {
+                        Log.e("test", "Exception occured at Line 495<NetRequestUt" +
+                                "ils>" + "\n" + Log.getStackTraceString(e));
+                    }
+
+
+                } catch (IOException e) {
+                    Log.e("test", "Exception occured at Line 49<NetRequestUtils>"
+                            + "\n" + Log.getStackTraceString(e));
+                } catch (JSONException e) {
+                    Log.e("test", "Exception occured at Line 52<NetRequestUtils>"
+                            + "\n" + Log.getStackTraceString(e));
+                }
+
+            }
+        }).start();
+    }
+
 
     //unicode转utf8
     private static String unicodeToString(String string) {

@@ -39,7 +39,7 @@
         android:backgroundTint="#ff9498a3"
         android:ems="10"
         android:hint="账号"
-        android:inputType="textUri|textPersonName|number"
+        android:inputType="number"
         android:selectAllOnFocus="false"
         android:textColor="#fff"
         android:textColorHint="#ffeaebed"

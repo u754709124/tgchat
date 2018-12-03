@@ -38,13 +38,13 @@
             <intent-filter>
                 <action android:name="com.tgchat.action.startPlayService" />
             </intent-filter>
-
         </service>
 
         <activity
             android:name=".ChatActivity"
             android:windowSoftInputMode="adjustPan|stateHidden" />
-        <activity android:name=".RegisterActivity"></activity>
+        <activity android:name=".RegisterActivity" />
+        <activity android:name=".AddActivity"></activity>
     </application>
 
 </manifest>

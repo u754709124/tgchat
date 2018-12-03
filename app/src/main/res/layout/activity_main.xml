@@ -39,6 +39,17 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/chat_head_image" />
+
+        <ImageView
+            android:id="@+id/add_friends"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/topTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/topTitle"
+            app:srcCompat="@mipmap/add_friends" />
+
     </android.support.constraint.ConstraintLayout>
 
     <FrameLayout

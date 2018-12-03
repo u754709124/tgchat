@@ -53,6 +53,9 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
 
     ListView messageListView;
 
+    //创建消息处理Handler个更新UI
+    private final Handler mUIHandler = new UIHandler();
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -130,9 +133,9 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
         mUIHandler.sendMessage(message);
     }
 
-    //创建消息处理Handler个更新UI
+    //创建UIHandler类
     @SuppressLint("HandlerLeak")
-    private final Handler mUIHandler = new Handler() {
+    private class UIHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
             //输出提示消息
@@ -146,7 +149,7 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                 messageList.add(messageInfo);
                 removeSimilarObject();
                 //获取该账户信息
-                netRequestUtils.requestUserInfo(messageInfo.getSendAccount());
+                netRequestUtils.requestUserInfo(messageInfo.getSendAccount(), 1);
                 //通知adapter更新界面
                 messageListAdapter.notifyDataSetChanged();
 
@@ -167,7 +170,14 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                 for (MainActivity.Message message : messageList) {
                     String userName = message.getSendAccount();
                     HashMap<String, String> info = friendsInfo.get(userName);
-                    assert info != null;
+                    while (info == null) {
+                        info = friendsInfo.get(userName);
+                        try {
+                            Thread.sleep(50);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
                     String headImageFileName = info.get("headImage");
                     imageUtils.downloadImage(headImageFileName, mUIHandler, 4);
                     //通知messageListAdapter数据改变
@@ -179,11 +189,9 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
                 //通知messageListAdapter数据改变
                 messageListAdapter.notifyDataSetChanged();
             }
-
-
             super.handleMessage(msg);
         }
-    };
+    }
 
     //ListView长按事件监听
     private void initLIstViewLongClickListener() {
@@ -239,7 +247,7 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
         for (MainActivity.Message message : messageList) {
             String sendAccount = message.getSendAccount();
             //根据账号在服务器查询该账号的 昵称 和 头像文件名
-            netRequestUtils.requestUserInfo(sendAccount);
+            netRequestUtils.requestUserInfo(sendAccount, 1);
         }
     }
 
@@ -384,13 +392,16 @@ public class MessageFragment extends Fragment implements MessageService.MessageU
 
         @Override
         public void onReceive(Context context, Intent intent) {
+            String type = intent.getStringExtra("Type");
             String status = intent.getStringExtra("Query");
-            if (status.equals("success")) {
-                Message message = new Message();
-                message.what = 3;
-                mUIHandler.sendMessage(message);
-            } else {
-                Log.e("test", "MessageFragment 查询用户信息失败!");
+            if (type.equals("1")) {
+                if (status.equals("success")) {
+                    Message message = new Message();
+                    message.what = 3;
+                    mUIHandler.sendMessage(message);
+                } else {
+                    Log.e("test", "MessageFragment 查询用户信息失败!");
+                }
             }
         }
     }
